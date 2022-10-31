@@ -3,7 +3,7 @@ import TodoList from './components/TodoList';
 import AddTodo from './components/AddTodo';
 import { Todo } from './todo.model';
 
-const App: React.FC = () => {
+function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
 
   const todoAddHandler = (text: string) => {
@@ -16,6 +16,6 @@ const App: React.FC = () => {
       <TodoList items={todos} />
     </div>
   );
-};
+}
 
 export default App;

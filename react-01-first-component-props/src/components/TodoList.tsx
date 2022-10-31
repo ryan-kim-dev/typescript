@@ -4,14 +4,14 @@ interface TodoListProps {
   items: { id: string; text: string }[];
 }
 
-const TodoList: React.FC<TodoListProps> = props => {
+function TodoList({ items }: TodoListProps) {
   return (
     <ul>
-      {props.items.map(todo => {
+      {items.map(todo => {
         return <li key={todo.id}>{todo.text}</li>;
       })}
     </ul>
   );
-};
+}
 
 export default TodoList;

@@ -4,13 +4,13 @@ type NewTodoProps = {
   onAddTodo: (todoText: string) => void;
 };
 
-const AddTodo: React.FC<NewTodoProps> = props => {
+function AddTodo({ onAddTodo }: NewTodoProps) {
   const textInputRef = useRef<HTMLInputElement>(null);
 
   const todoOnSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const enteredText = textInputRef.current!.value;
-    props.onAddTodo(enteredText);
+    onAddTodo(enteredText);
   };
 
   return (
@@ -23,6 +23,6 @@ const AddTodo: React.FC<NewTodoProps> = props => {
       <button type="submit">할 일 추가</button>
     </form>
   );
-};
+}
 
 export default AddTodo;

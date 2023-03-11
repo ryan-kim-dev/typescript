@@ -36,14 +36,19 @@ window.addEventListener('hashchange', function () {
 });
 
 for (let i = 0; i < newsFeed.length; i++) {
-  const li = document.createElement('li');
-  const a = document.createElement('a');
+  // 마크업 계층구조 확인의 용이성을 위해 DOM API(ex: createElement) 사용을 최대한 자제하도록 수정한 예시
+  const div = document.createElement('div'); // innerHTML로 li, a 태그를 끼워넣기 위한 임시 div
 
-  a.href = `#${newsFeed[i].id}`;
-  a.textContent = `${newsFeed[i].title} (${newsFeed[i].comments_count})`;
+  div.innerHTML = `
+  <li>
+    <a href="#${newsFeed[i].id}">
+    ${newsFeed[i].title} (${newsFeed[i].comments_count}
+    </a>
+  </li>
+  `;
 
-  li.appendChild(a);
-  ul.appendChild(li);
+  // ul의 자식으로 li만 존재하도록 불필요한 li를 감싼 div 대신 내부의 li만 선택
+  ul.appendChild(div.firstElementChild); // ul.appendChildren[0] 과 동일
 }
 
 container.appendChild(ul);

@@ -27,8 +27,19 @@ function getData(url) {
 function renderNewsFeed() {
   const newsFeed = getData(NEWS_URL);
   const newsList = [];
-  // 글 목록 ul의 여는 태그
-  newsList.push('<ul>');
+  // UI 템플릿 만들기
+  let template = `
+    <div class="container mx-auto p-4">
+      <h1>Hacker News</h1>
+      <ul>
+        {{__news_feed__}}
+      </ul>
+      <div>
+        <a href="#/page/{{__prev_page__}}">이전 페이지</a>
+        <a href="#/page/{{__next_page__}}">다음 페이지</a>
+      </div>
+    </div>
+  `;
 
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
     // 한 페이지에 10개의 글이 보이도록 페이지네이션. 따라서 한 페이지의 단위가 10이므로 * 10
@@ -41,23 +52,20 @@ function renderNewsFeed() {
     </li>
     `);
   }
-  // 페이지네이션 ui용 div: ul 안의 li들 맨 밑에 삽입
-  newsList.push(`
-    <div>
-      <a href="#/page/${
-        store.currentPage > 1 ? store.currentPage - 1 : 1
-      }">이전 페이지</a>
-      <a href="#/page/${
-        store.currentPage * 10 < newsFeed.length
-          ? store.currentPage + 1
-          : Math.floor(newsFeed.length / 10)
-      }">다음 페이지</a>
-    </div>
-    `);
-  // 글 목록 닫는 ul
-  newsList.push('</ul>');
+  // 템플릿 안에 데이터가 들어갈 곳으로 마킹해둔 부분을 실제 받아온 데이터로 교체
+  template = template.replace('{{__news_feed__}}', newsList.join(''));
+  template = template.replace(
+    '{{__prev_page__}}',
+    store.currentPage > 1 ? store.currentPage - 1 : 1
+  );
+  template = template.replace(
+    '{{__next_page__}}',
+    store.currentPage * 10 < newsFeed.length
+      ? store.currentPage + 1
+      : Math.floor(newsFeed.length / 10)
+  );
 
-  container.innerHTML = newsList.join('');
+  container.innerHTML = template;
 }
 
 function renderNewsDetail() {

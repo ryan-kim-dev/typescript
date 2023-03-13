@@ -129,8 +129,38 @@ function renderNewsDetail() {
 </div>
   `;
 
+  // 중첩된 대댓글 ui 구현을 위한 함수 - 재귀 사용
+  function makeComment(comments, called = 0) {
+    // comments: 객체를 요소로 갖는 배열, called: 재귀 호출 횟수를 세는 초기값 0의 변수
+    // comments 배열의 각 요소인 객체는 또 다시 대댓글 목록인 동일한 모양의 comments 배열을 프로퍼티로 가짐
+    const commentString = [];
+
+    for (let i = 0; i < comments.length; i++) {
+      commentString.push(`
+      <div style="padding-left: ${called * 40}px;" class="mt-4">
+        <div class="text-gray-400">
+          <i class="fa fa-sort-up mr-2"></i>
+          <strong>${comments[i].user}</strong> ${comments[i].time_ago}
+        </div>
+        <p class="text-gray-700">${comments[i].content}</p>
+      </div>
+    `);
+
+      if (comments[i].comments.length > 0) {
+        // 대댓글이 있으면 재귀 호출 시 두번쨰 인수로 호출횟수를 1 증가시킨다
+        commentString.push(makeComment(comments[i].comments, called + 1));
+      }
+    }
+
+    // 재귀 호출의 탈출 조건 - 대댓글이 더이상 없으면 마지막 대댓글내용을 추가하고 리턴
+    return commentString.join('');
+  }
+
   // SPA처럼 선택한 글만 화면에 보여지도록 리팩토링
-  container.innerHTML = template;
+  container.innerHTML = template.replace(
+    '{{__comments__}}',
+    makeComment(newsContent.comments)
+  );
 }
 
 // * 3. 라우터

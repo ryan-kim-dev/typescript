@@ -3,15 +3,36 @@ type Store = {
   currentPage: number;
   feeds: NewsFeed[]; // NewsFeed 객체 타입만 배열의 요소로
 };
-type NewsFeed = {
+
+/** NewsFeed, NewsDetail, NewsComment 타입들의 중복 제거를 위한 중복 요소들만 가진 타입 정의 */
+type News = {
   id: number;
-  comments_count: number;
+  time: number;
+  time_ago: string;
+  title: string;
   url: string;
   user: string;
-  time_ago: string;
+  content: string;
+  type: string;
+};
+
+/** 전체 글 목록 배열의 각 요소인 객체의 타입 */
+type NewsFeed = News & {
   points: number;
-  title: string;
+  comments_count: number;
   read?: boolean; // optional
+};
+
+/** 각 게시글 하나의 데이터 타입 */
+type NewsDetail = News & {
+  comments: NewsComment[];
+};
+
+/** 게시글에 달린 댓글의 타입 */
+type NewsComment = News & {
+  comments: NewsComment[]; // 대댓글의 배열
+  comments_count: number;
+  level: number; // 대댓글의 뎁스
 };
 
 const container: Element | null = document.querySelector('#root');
@@ -34,7 +55,7 @@ const store: Store = {
 };
 
 // 1.1 데이터 가져오기
-function getData(url) {
+function getData<AjaxResponse>(url: string): AjaxResponse {
   ajax.open('GET', url, false);
   ajax.send(); // send 까지 해야 가져온다
 
@@ -42,7 +63,7 @@ function getData(url) {
 }
 
 // 글 목록 데이터에 읽음 여부 상태값을 추가해주기 위한 함수
-function makeFeeds(feeds) {
+function makeFeeds(feeds: NewsFeed[]) {
   for (let i = 0; i < feeds.length; i++) {
     feeds[i].read = false;
   }
@@ -50,7 +71,7 @@ function makeFeeds(feeds) {
   return feeds;
 }
 
-function updateView(html: string) {
+function updateView(html: string): void {
   if (container) {
     container.innerHTML = html;
   } else {
@@ -92,7 +113,7 @@ function renderNewsFeed() {
   const newsList = [];
   let newsFeed: NewsFeed[] = store.feeds;
   if (newsFeed.length === 0) {
-    newsFeed = store.feeds = makeFeeds(getData(NEWS_URL));
+    newsFeed = store.feeds = makeFeeds(getData<NewsFeed[]>(NEWS_URL));
   }
 
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
@@ -126,13 +147,15 @@ function renderNewsFeed() {
   template = template.replace('{{__news_feed__}}', newsList.join(''));
   template = template.replace(
     '{{__prev_page__}}',
-    store.currentPage > 1 ? store.currentPage - 1 : 1
+    String(store.currentPage > 1 ? store.currentPage - 1 : 1)
   );
   template = template.replace(
     '{{__next_page__}}',
-    store.currentPage * 10 < newsFeed.length
-      ? store.currentPage + 1
-      : Math.floor(newsFeed.length / 10)
+    String(
+      store.currentPage * 10 < newsFeed.length
+        ? store.currentPage + 1
+        : Math.floor(newsFeed.length / 10)
+    )
   );
 
   updateView(template);
@@ -142,7 +165,9 @@ function renderNewsDetail() {
   // 특정 글의 id 받아오기 - location 객체는 주소와 관련된 다양한 정보를 제공한다.
   const contentId = location.hash.substr(7); // 단건 게시글의 아이디만 받도록 subStr
   // 특정 게시글 내용 받아오기
-  const newsContent = getData(CONTENT_URL.replace('@id', contentId));
+  const newsContent = getData<NewsDetail>(
+    CONTENT_URL.replace('@id', contentId)
+  );
   // ui 템플릿
   let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
@@ -180,33 +205,6 @@ function renderNewsDetail() {
     }
   }
 
-  // 중첩된 대댓글 ui 구현을 위한 함수 - 재귀 사용
-  function makeComment(comments, called = 0) {
-    // comments: 객체를 요소로 갖는 배열, called: 재귀 호출 횟수를 세는 초기값 0의 변수
-    // comments 배열의 각 요소인 객체는 또 다시 대댓글 목록인 동일한 모양의 comments 배열을 프로퍼티로 가짐
-    const commentString = [];
-
-    for (let i = 0; i < comments.length; i++) {
-      commentString.push(`
-      <div style="padding-left: ${called * 40}px;" class="mt-4">
-          <div class="text-gray-400">
-            <i class="fa fa-sort-up mr-2"></i>
-            <strong>${comments[i].user}</strong> ${comments[i].time_ago}
-          </div>
-          <p class="text-gray-700">${comments[i].content}</p>
-        </div>
-    `);
-
-      if (comments[i].comments.length > 0) {
-        // 대댓글이 있으면 재귀 호출 시 두번쨰 인수로 호출횟수를 1 증가시킨다
-        commentString.push(makeComment(comments[i].comments, called + 1));
-      }
-    }
-
-    // 재귀 호출의 탈출 조건 - 대댓글이 더이상 없으면 마지막 대댓글내용을 추가하고 리턴
-    return commentString.join('');
-  }
-
   // SPA처럼 선택한 글만 화면에 보여지도록 리팩토링
   // updateView 함수를 정의, 사용하여 innerHTML에 template을 할당하는 중복 코드 제거
   updateView(
@@ -214,8 +212,37 @@ function renderNewsDetail() {
   );
 }
 
+// 중첩된 대댓글 ui 구현을 위한 함수 - 재귀 사용
+function makeComment(comments: NewsComment[]): string {
+  // comments: 객체를 요소로 갖는 배열, called: 재귀 호출 횟수를 세는 초기값 0의 변수
+  // comments 배열의 각 요소인 객체는 또 다시 대댓글 목록인 동일한 모양의 comments 배열을 프로퍼티로 가짐
+  const commentString = [];
+
+  for (let i = 0; i < comments.length; i++) {
+    const comment: NewsComment = comments[i];
+
+    commentString.push(`
+    <div style="padding-left: ${comment.level * 40}px;" class="mt-4">
+        <div class="text-gray-400">
+          <i class="fa fa-sort-up mr-2"></i>
+          <strong>${comment.user}</strong> ${comment.time_ago}
+        </div>
+        <p class="text-gray-700">${comment.content}</p>
+      </div>
+  `);
+
+    if (comment.comments.length > 0) {
+      // 대댓글이 있으면 재귀 호출 시 두번쨰 인수로 호출횟수를 1 증가시킨다
+      commentString.push(makeComment(comment.comments));
+    }
+  }
+
+  // 재귀 호출의 탈출 조건 - 대댓글이 더이상 없으면 마지막 대댓글내용을 추가하고 리턴
+  return commentString.join('');
+}
+
 // * 3. 라우터
-function router() {
+function router(): void {
   const routePath = location.hash;
   if (!routePath) {
     return renderNewsFeed(); // 최초 렌더링 시에는 전체 목록 화면으로

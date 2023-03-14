@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES6",
+    "module": "CommonJS",
+    "alwaysStrict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "sourceMap": true,
+    // sourceMap: 디버깅 시 편의를 위해서
+    // 브라우저에서 실제 돌아가고 있는 컴파일된 JS파일 대신
+    // 내가 작성한 타입스크립트 코드를 보여주기 위한 옵션
+    "downlevelIteration": true
+  }
+}

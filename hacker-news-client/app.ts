@@ -1,7 +1,23 @@
-const container = document.querySelector('#root');
+// type alias - 타입 별칭
+type Store = {
+  currentPage: number;
+  feeds: NewsFeed[]; // NewsFeed 객체 타입만 배열의 요소로
+};
+type NewsFeed = {
+  id: number;
+  comments_count: number;
+  url: string;
+  user: string;
+  time_ago: string;
+  points: number;
+  title: string;
+  read?: boolean; // optional
+};
+
+const container: Element | null = document.querySelector('#root');
 
 // * 1. AJAX 요청
-const ajax = new XMLHttpRequest();
+const ajax: XMLHttpRequest = new XMLHttpRequest();
 
 // api 요청 주소, 페이지 번호 등의 값은 바뀔 가능성이 있기 때문에 변수로 빼둔다
 const NEWS_URL = `https://api.hnpwa.com/v0/news/1.json`;
@@ -12,7 +28,7 @@ const CONTENT_URL = `https://api.hnpwa.com/v0/item/@id.json`;
 // 변수의 사용처: 글 목록 화면, 단건 게시글(목록으로 클릭 시 이전 페이지의 목록을 기억해야 함)
 // 따라서 여러 페이지에서 변수에 접근 가능해야 함으로(공유 자원) 전역에 선언
 
-const store = {
+const store: Store = {
   currentPage: 1, // 현재 페이지
   feeds: [], // 읽음 여부의 상태값
 };
@@ -32,6 +48,14 @@ function makeFeeds(feeds) {
   }
 
   return feeds;
+}
+
+function updateView(html: string) {
+  if (container) {
+    container.innerHTML = html;
+  } else {
+    console.error('최상위 컨테이너가 없어 UI를 진행하지 못합니다');
+  }
 }
 
 // * 2. 가져온 데이터 UI에 표시
@@ -66,7 +90,7 @@ function renderNewsFeed() {
   // 최초 렌더링 시 store.feeds는 []이므로 한번만 getData로 글 목록 받아오도록 한다
   // 받아온 글 목록에 읽음 여부의 상태값을 추가해주기 위해 makeFeeds 호출 시 getData()를 인수로 사용
   const newsList = [];
-  let newsFeed = store.feeds;
+  let newsFeed: NewsFeed[] = store.feeds;
   if (newsFeed.length === 0) {
     newsFeed = store.feeds = makeFeeds(getData(NEWS_URL));
   }
@@ -111,7 +135,7 @@ function renderNewsFeed() {
       : Math.floor(newsFeed.length / 10)
   );
 
-  container.innerHTML = template;
+  updateView(template);
 }
 
 function renderNewsDetail() {
@@ -184,9 +208,9 @@ function renderNewsDetail() {
   }
 
   // SPA처럼 선택한 글만 화면에 보여지도록 리팩토링
-  container.innerHTML = template.replace(
-    '{{__comments__}}',
-    makeComment(newsContent.comments)
+  // updateView 함수를 정의, 사용하여 innerHTML에 template을 할당하는 중복 코드 제거
+  updateView(
+    template.replace('{{__comments__}}', makeComment(newsContent.comments))
   );
 }
 

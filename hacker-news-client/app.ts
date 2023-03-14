@@ -1,41 +1,40 @@
-// type alias - 타입 별칭
-type Store = {
+interface Store {
   currentPage: number;
   feeds: NewsFeed[]; // NewsFeed 객체 타입만 배열의 요소로
-};
+}
 
 /** NewsFeed, NewsDetail, NewsComment 타입들의 중복 제거를 위한 중복 요소들만 가진 타입 정의 */
-type News = {
-  id: number;
-  time: number;
-  time_ago: string;
-  title: string;
-  url: string;
-  user: string;
-  content: string;
-  type: string;
-};
+interface News {
+  readonly id: number;
+  readonly time: number;
+  readonly time_ago: string;
+  readonly title: string;
+  readonly url: string;
+  readonly user: string;
+  readonly content: string;
+  readonly type: string;
+}
 
 /** 전체 글 목록 배열의 각 요소인 객체의 타입 */
-type NewsFeed = News & {
-  points: number;
-  comments_count: number;
+interface NewsFeed extends News {
+  readonly points: number;
+  readonly comments_count: number;
   read?: boolean; // optional
-};
+}
 
 /** 각 게시글 하나의 데이터 타입 */
-type NewsDetail = News & {
-  comments: NewsComment[];
-};
+interface NewsDetail extends News {
+  readonly comments: NewsComment[];
+}
 
 /** 게시글에 달린 댓글의 타입 */
-type NewsComment = News & {
-  comments: NewsComment[]; // 대댓글의 배열
-  comments_count: number;
-  level: number; // 대댓글의 뎁스
-};
+interface NewsComment extends News {
+  readonly comments: NewsComment[]; // 대댓글의 배열
+  readonly comments_count: number;
+  readonly level: number; // 대댓글의 뎁스
+}
 
-const container: Element | null = document.querySelector('#root');
+const container: HTMLElement | null = document.getElementById('root');
 
 // * 1. AJAX 요청
 const ajax: XMLHttpRequest = new XMLHttpRequest();

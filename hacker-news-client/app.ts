@@ -53,7 +53,36 @@ const store: Store = {
   feeds: [], // 읽음 여부의 상태값
 };
 
-// 1.1 데이터 가져오기
+// 클래스는 최초에 초기화되는 과정이 필요하므로 초기화를 위해 생성자 함수(constructor) 사용
+class Api {
+  url: string;
+  ajax: XMLHttpRequest;
+
+  constructor(url: string) {
+    this.url = url;
+    this.ajax = new XMLHttpRequest();
+  }
+
+  protected getRequest<AjaxResponse>(): AjaxResponse {
+    this.ajax.open('GET', this.url, false);
+    this.ajax.send();
+
+    return JSON.parse(this.ajax.response);
+  }
+}
+
+class NewsFeedApi extends Api {
+  getData(): NewsFeed[] {
+    return this.getRequest<NewsFeed[]>();
+  }
+}
+
+class NewsDetailApi extends Api {
+  getData(): NewsDetail {
+    return this.getRequest<NewsDetail>();
+  }
+}
+
 function getData<AjaxResponse>(url: string): AjaxResponse {
   ajax.open('GET', url, false);
   ajax.send(); // send 까지 해야 가져온다
@@ -80,6 +109,7 @@ function updateView(html: string): void {
 
 // * 2. 가져온 데이터 UI에 표시
 function renderNewsFeed() {
+  const api = new NewsFeedApi(NEWS_URL);
   // UI 템플릿 만들기
   let template = `
   <div class="bg-gray-600 min-h-screen">
@@ -112,7 +142,7 @@ function renderNewsFeed() {
   const newsList = [];
   let newsFeed: NewsFeed[] = store.feeds;
   if (newsFeed.length === 0) {
-    newsFeed = store.feeds = makeFeeds(getData<NewsFeed[]>(NEWS_URL));
+    newsFeed = store.feeds = makeFeeds(api.getData());
   }
 
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
@@ -163,10 +193,9 @@ function renderNewsFeed() {
 function renderNewsDetail() {
   // 특정 글의 id 받아오기 - location 객체는 주소와 관련된 다양한 정보를 제공한다.
   const contentId = location.hash.substr(7); // 단건 게시글의 아이디만 받도록 subStr
+  const api = new NewsDetailApi(CONTENT_URL.replace('@id', contentId));
   // 특정 게시글 내용 받아오기
-  const newsContent = getData<NewsDetail>(
-    CONTENT_URL.replace('@id', contentId)
-  );
+  const newsContent = api.getData();
   // ui 템플릿
   let template = `
     <div class="bg-gray-600 min-h-screen pb-8">

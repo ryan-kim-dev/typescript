@@ -53,35 +53,51 @@ const store: Store = {
   feeds: [], // 읽음 여부의 상태값
 };
 
+function applyApiMixins(targetClass: any, baseClasses: any[]): void {
+  baseClasses.forEach((baseClass) => {
+    Object.getOwnPropertyNames(baseClass.prototype).forEach((name) => {
+      const descriptor = Object.getOwnPropertyDescriptor(
+        baseClass.prototype,
+        name
+      );
+
+      if (descriptor) {
+        Object.defineProperty(targetClass.prototype, name, descriptor);
+      }
+    });
+  });
+}
+
 // 클래스는 최초에 초기화되는 과정이 필요하므로 초기화를 위해 생성자 함수(constructor) 사용
 class Api {
-  url: string;
-  ajax: XMLHttpRequest;
+  // url: string;
+  // ajax: XMLHttpRequest;
 
-  constructor(url: string) {
-    this.url = url;
-    this.ajax = new XMLHttpRequest();
-  }
+  getRequest<AjaxResponse>(url: string): AjaxResponse {
+    const ajax = new XMLHttpRequest();
+    ajax.open('GET', url, false);
+    ajax.send();
 
-  protected getRequest<AjaxResponse>(): AjaxResponse {
-    this.ajax.open('GET', this.url, false);
-    this.ajax.send();
-
-    return JSON.parse(this.ajax.response);
+    return JSON.parse(ajax.response);
   }
 }
 
-class NewsFeedApi extends Api {
+class NewsFeedApi {
   getData(): NewsFeed[] {
-    return this.getRequest<NewsFeed[]>();
+    return this.getRequest<NewsFeed[]>(NEWS_URL);
+  }
+}
+class NewsDetailApi {
+  getData(id: string): NewsDetail {
+    return this.getRequest<NewsDetail>(CONTENT_URL.replace('@id', id));
   }
 }
 
-class NewsDetailApi extends Api {
-  getData(): NewsDetail {
-    return this.getRequest<NewsDetail>();
-  }
-}
+interface NewsFeedApi extends Api {}
+interface NewsDetailApi extends Api {}
+
+applyApiMixins(NewsFeedApi, [Api]);
+applyApiMixins(NewsDetailApi, [Api]);
 
 function getData<AjaxResponse>(url: string): AjaxResponse {
   ajax.open('GET', url, false);
@@ -109,7 +125,7 @@ function updateView(html: string): void {
 
 // * 2. 가져온 데이터 UI에 표시
 function renderNewsFeed() {
-  const api = new NewsFeedApi(NEWS_URL);
+  const api = new NewsFeedApi();
   // UI 템플릿 만들기
   let template = `
   <div class="bg-gray-600 min-h-screen">
@@ -193,9 +209,9 @@ function renderNewsFeed() {
 function renderNewsDetail() {
   // 특정 글의 id 받아오기 - location 객체는 주소와 관련된 다양한 정보를 제공한다.
   const contentId = location.hash.substr(7); // 단건 게시글의 아이디만 받도록 subStr
-  const api = new NewsDetailApi(CONTENT_URL.replace('@id', contentId));
+  const api = new NewsDetailApi();
   // 특정 게시글 내용 받아오기
-  const newsContent = api.getData();
+  const newsDetail: NewsDetail = api.getData(contentId);
   // ui 템플릿
   let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
@@ -215,9 +231,9 @@ function renderNewsDetail() {
       </div>
 
       <div class="h-full border rounded-xl bg-white m-6 p-4 ">
-        <h2>${newsContent.title}</h2>
+        <h2>${newsDetail.title}</h2>
         <div class="text-gray-400">
-          ${newsContent.content}
+          ${newsDetail.content}
         </div>
       
         {{__comments__}}
@@ -236,7 +252,7 @@ function renderNewsDetail() {
   // SPA처럼 선택한 글만 화면에 보여지도록 리팩토링
   // updateView 함수를 정의, 사용하여 innerHTML에 template을 할당하는 중복 코드 제거
   updateView(
-    template.replace('{{__comments__}}', makeComment(newsContent.comments))
+    template.replace('{{__comments__}}', makeComment(newsDetail.comments))
   );
 }
 
